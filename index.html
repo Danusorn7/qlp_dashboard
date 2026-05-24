@@ -194,10 +194,9 @@ function mk(r) {
 function filt() {
   const f=document.getElementById('df').value, t=document.getElementById('dt').value;
   const c=document.getElementById('cf').value, p=document.getElementById('pf').value;
-  const fd=f?new Date(f):null, td=t?new Date(t+'T23:59:59'):null;
   return RAW.filter(r=>{
-    if(fd&&r.date&&r.date<fd) return false;
-    if(td&&r.date&&r.date>td) return false;
+    if(f&&r.dateStr&&r.dateStr<f.split('-').join('/')) return false;
+    if(t&&r.dateStr&&r.dateStr>t.split('-').join('/')) return false;
     if(c&&r.channel!==c) return false;
     if(p&&r.product!==p) return false;
     return true;
