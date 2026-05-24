@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLP Sales Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#070b1a;font-family:'Segoe UI',Tahoma,sans-serif;color:#e2e8f0;min-height:100vh;padding:20px}
+.db{max-width:1200px;margin:0 auto}
+.db-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.db-title{font-size:20px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.status-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.status-text{font-size:12px;color:#64748b}
+.countdown{font-size:12px;color:#818cf8;font-weight:500}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.filters label{font-size:12px;color:#94a3b8}
+.filters input,.filters select{background:#1e2140;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:12px;padding:6px 10px;outline:none}
+.btn{border:none;border-radius:8px;color:#fff;font-size:12px;padding:6px 14px;cursor:pointer}
+.btn-reset{background:linear-gradient(135deg,#4f46e5,#7c3aed)}
+.btn-refresh{background:linear-gradient(135deg,#059669,#047857)}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+.kpi{border-radius:14px;padding:16px 18px}
+.kpi-1{background:linear-gradient(135deg,#7c3aed,#4f46e5)}
+.kpi-2{background:linear-gradient(135deg,#0891b2,#0e7490)}
+.kpi-3{background:linear-gradient(135deg,#059669,#047857)}
+.kpi-4{background:linear-gradient(135deg,#db2777,#9d174d)}
+.kpi-label{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.kpi-val{font-size:28px;font-weight:700;color:#fff;line-height:1}
+.kpi-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:4px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:700px){.charts-grid{grid-template-columns:1fr}}
+.card{background:#12172e;border:1px solid #1e2a4a;border-radius:14px;padding:16px}
+.card-title{font-size:12px;font-weight:600;color:#64748b;margin-bottom:12px;letter-spacing:.5px;text-transform:uppercase}
+.bottom-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+@media(max-width:700px){.bottom-grid{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:#475569;font-weight:600;padding:5px 8px;text-align:left;border-bottom:1px solid #1e2a4a;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:7px 8px;border-bottom:1px solid #0f1428;color:#cbd5e1}
+td:not(:first-child){text-align:right}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1a2035}
+.dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:middle}
+.bar-mini{height:4px;border-radius:2px;background:#1e2a4a;margin-top:3px}
+.bar-fill{height:4px;border-radius:2px}
+.top5-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #0f1428}
+.top5-item:last-child{border-bottom:none}
+.top5-rank{font-size:14px;font-weight:700;min-width:20px}
+.top5-name{flex:1;font-size:12px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top5-val{font-size:12px;font-weight:600;min-width:80px;text-align:right}
+.pleg{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.loading{text-align:center;padding:60px;color:#64748b;font-size:14px}
+.error-box{padding:14px 18px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px;color:#fca5a5;font-size:13px;margin-bottom:16px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="db">
+  <div class="db-header">
+    <div class="db-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      QLP Sales Dashboard
+    </div>
+    <div class="status-bar">
+      <div class="status-dot" id="sDot"></div>
+      <span class="status-text" id="sTxt">กำลังโหลด...</span>
+      <span class="countdown" id="cd"></span>
+    </div>
+  </div>
+
+  <div id="errBox"></div>
+
+  <div class="filters">
+    <label>ตั้งแต่</label><input type="date" id="df" value="2026-01-01">
+    <label>ถึง</label><input type="date" id="dt" value="2026-12-31">
+    <select id="cf"><option value="">ทุกช่องทาง</option></select>
+    <button class="btn btn-reset" onclick="resetF()">รีเซต</button>
+    <button class="btn btn-refresh" onclick="fetchData()">🔄 รีเฟรช</button>
+  </div>
+
+  <div id="main"><div class="loading">⏳ กำลังดึงข้อมูลจาก Google Sheets...</div></div>
+</div>
+
+<script>
+const SHEET_ID = '1shARFRcKkyzKo1kggDGBFFxBXodAyrYlCJMrbetbyb4';
+// GID ของแต่ละ sheet — ดูจาก URL #gid=xxxxx
+const SHEETS = [
+  { name: 'Jan 26', gid: '0' },
+  { name: 'Feb 26', gid: '1552168710' },
+  { name: 'Mar 26', gid: '951066011' },
+  { name: 'Apr 26', gid: '74888472' },
+  { name: 'May 26', gid: '1812947634' },
+];
+
+const NEON = ['#818cf8','#34d399','#f472b6','#fb923c','#38bdf8','#a78bfa','#4ade80','#f87171','#fbbf24','#e879f9','#67e8f9','#86efac'];
+const ML = {'2026-01':'ม.ค.','2026-02':'ก.พ.','2026-03':'มี.ค.','2026-04':'เม.ย.','2026-05':'พ.ค.','2026-06':'มิ.ย.','2026-07':'ก.ค.','2026-08':'ส.ค.','2026-09':'ก.ย.','2026-10':'ต.ค.','2026-11':'พ.ย.','2026-12':'ธ.ค.'};
+
+let RAW = [], C1, C2, C3, timer, cd = 60;
+
+function csvUrl(gid) {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+}
+
+async function fetchCSV(gid) {
+  const res = await fetch(csvUrl(gid));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.text();
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n');
+  const rows = lines.map(l => {
+    const cells = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < l.length; i++) {
+      const c = l[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+  return rows;
+}
+
+function parseRows(rows, sheetName) {
+  const results = [];
+  let headerIdx = -1;
+  let cDate=-1, cChannel=-1, cProduct=-1, cQty=-1, cTotal=-1;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => !c)) continue;
+
+    if (row.some(c => c === 'วันที่' || c === 'ช่องทาง')) {
+      headerIdx = i;
+      row.forEach((c, j) => {
+        if (c === 'วันที่') cDate = j;
+        if (c === 'ช่องทาง') cChannel = j;
+        if (c === 'ชื่อผลิตภัณฑ์') cProduct = j;
+        if (c.includes('จำนวน')) cQty = j;
+        if (c === 'รวม') cTotal = j;
+      });
+      continue;
+    }
+    if (headerIdx < 0) continue;
+
+    const dateVal = cDate >= 0 ? row[cDate] || '' : '';
+    const channel = cChannel >= 0 ? (row[cChannel] || '').trim() : '';
+    const product = cProduct >= 0 ? (row[cProduct] || '').trim() : '';
+    const qty = cQty >= 0 ? parseInt((row[cQty]||'').replace(/,/g,'')) || 0 : 0;
+    const total = cTotal >= 0 ? parseFloat((row[cTotal]||'').replace(/,/g,'')) || 0 : 0;
+
+    if (!product || total <= 0) continue;
+    results.push({ sheet: sheetName, date: dateVal, channel: channel || 'อื่นๆ', product, qty, total });
+  }
+  return results;
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  s = s.replace(/"/g,'').trim();
+  if (s.match(/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}/)) return new Date(s.replace(/\//g,'-'));
+  const p = s.split('/');
+  if (p.length === 3) return new Date(p[2], parseInt(p[1])-1, parseInt(p[0]));
+  return null;
+}
+
+function mk(r) {
+  const d = parseDate(r.date);
+  if (!d || isNaN(d)) return '?';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+async function fetchData() {
+  document.getElementById('sDot').style.background = '#fbbf24';
+  document.getElementById('sTxt').textContent = 'กำลังดึงข้อมูล...';
+  document.getElementById('errBox').innerHTML = '';
+  clearInterval(timer);
+
+  try {
+    RAW = [];
+    for (const s of SHEETS) {
+      const text = await fetchCSV(s.gid);
+      const rows = parseCSV(text);
+      RAW = RAW.concat(parseRows(rows, s.name));
+    }
+
+    const allChs = [...new Set(RAW.map(r => r.channel))].sort();
+    const sel = document.getElementById('cf');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">ทุกช่องทาง</option>';
+    allChs.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      if (c === cur) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    const now = new Date();
+    document.getElementById('sDot').style.background = '#34d399';
+    document.getElementById('sTxt').textContent = `อัปเดต ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} · ${RAW.length} รายการ`;
+
+    buildUI();
+    render();
+    startTimer();
+  } catch(e) {
+    document.getElementById('sDot').style.background = '#f87171';
+    document.getElementById('sTxt').textContent = 'เชื่อมต่อไม่ได้';
+    document.getElementById('errBox').innerHTML = `<div class="error-box">❌ ดึงข้อมูลไม่ได้: ${e.message}<br>ตรวจสอบว่า Google Sheet ถูกตั้งเป็น Public แล้ว</div>`;
+  }
+}
+
+function buildUI() {
+  document.getElementById('main').innerHTML = `
+    <div class="kpi-row" id="kpis"></div>
+    <div class="charts-grid">
+      <div class="card"><div class="card-title">ยอดขายตามช่องทาง</div><div style="position:relative;height:220px"><canvas id="c1"></canvas></div></div>
+      <div class="card"><div class="card-title">สัดส่วนยอดขาย</div><div class="pleg" id="pieLeg"></div><div style="position:relative;height:170px"><canvas id="c2"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><div class="card-title">ยอดขายรายเดือน — top 5 ช่องทาง</div><div style="position:relative;height:190px"><canvas id="c3"></canvas></div></div>
+    <div class="bottom-grid">
+      <div class="card"><div class="card-title">สรุปยอดขายตามช่องทาง</div>
+        <table><thead><tr><th>ช่องทาง</th><th>ยอดรวม (฿)</th><th>ชิ้น</th><th>สัดส่วน</th></tr></thead><tbody id="tbody"></tbody></table>
+      </div>
+      <div class="card"><div class="card-title">top 5 ช่องทาง</div><div id="top5"></div></div>
+    </div>`;
+}
+
+function filt() {
+  const f = document.getElementById('df').value, t = document.getElementById('dt').value, c = document.getElementById('cf').value;
+  const fd = f ? new Date(f) : null, td = t ? new Date(t+'T23:59:59') : null;
+  return RAW.filter(r => {
+    const d = parseDate(r.date);
+    if (fd && d && d < fd) return false;
+    if (td && d && d > td) return false;
+    if (c && r.channel !== c) return false;
+    return true;
+  });
+}
+
+function render() {
+  if (!document.getElementById('kpis')) return;
+  const data = filt();
+  const byC = {};
+  data.forEach(r => { if(!byC[r.channel]) byC[r.channel]={t:0,q:0,n:0}; byC[r.channel].t+=r.total; byC[r.channel].q+=r.qty; byC[r.channel].n++; });
+  const sorted = Object.entries(byC).sort((a,b)=>b[1].t-a[1].t);
+  const grand = sorted.reduce((s,[,v])=>s+v.t,0);
+  const tqty = sorted.reduce((s,[,v])=>s+v.q,0);
+  const tcount = sorted.reduce((s,[,v])=>s+v.n,0);
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi kpi-1"><div class="kpi-label">ยอดขายรวม</div><div class="kpi-val">฿${Math.round(grand).toLocaleString()}</div><div class="kpi-sub">ทุกช่องทาง</div></div>
+    <div class="kpi kpi-2"><div class="kpi-label">จำนวนรายการ</div><div class="kpi-val">${tcount.toLocaleString()}</div><div class="kpi-sub">รายการขาย</div></div>
+    <div class="kpi kpi-3"><div class="kpi-label">จำนวนชิ้น</div><div class="kpi-val">${tqty.toLocaleString()}</div><div class="kpi-sub">สินค้าทั้งหมด</div></div>
+    <div class="kpi kpi-4"><div class="kpi-label">ช่องทางขาย</div><div class="kpi-val">${sorted.length}</div><div class="kpi-sub">ช่องทาง</div></div>`;
+
+  const labs=sorted.map(([k])=>k), vals=sorted.map(([,v])=>Math.round(v.t)), cols=labs.map((_,i)=>NEON[i%NEON.length]);
+  if(C1)C1.destroy();
+  C1=new Chart(document.getElementById('c1'),{type:'bar',data:{labels:labs,datasets:[{data:vals,backgroundColor:cols.map(c=>c+'99'),borderColor:cols,borderWidth:1,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' ฿'+ctx.raw.toLocaleString()}}},scales:{x:{ticks:{color:'#475569',font:{size:10},maxRotation:40,autoSkip:false},grid:{color:'#1a2035'}},y:{ticks:{color:'#475569',font:{size:10},callback:v=>'฿'+(v>=1000?Math.round(v/1000)+'k':v)},grid:{color:'#1e2a4a'}}}}});
+
+  const top6=sorted.slice(0,6);
+  document.getElementById('pieLeg').innerHTML=top6.map(([k],i)=>`<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#64748b"><span style="width:8px;height:8px;border-radius:2px;background:${NEON[i]};display:inline-block"></span>${k} ${grand>0?Math.round(top6[i][1].t/grand*100):0}%</span>`).join('');
+  if(C2)C2.destroy();
+  C2=new Chart(document.getElementById('c2'),{type:'doughnut',data:{labels:top6.map(([k])=>k),datasets:[{data:top6.map(([,v])=>Math.round(v.t)),backgroundColor:NEON.slice(0,top6.length).map(c=>c+'cc'),borderColor:'#12172e',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': ฿'+ctx.raw.toLocaleString()}}}}});
+
+  const months=[...new Set(data.map(mk))].filter(m=>m!=='?').sort();
+  const top5=sorted.slice(0,5).map(([k])=>k);
+  const md={};months.forEach(m=>{md[m]={};top5.forEach(c=>{md[m][c]=0;});});
+  data.forEach(r=>{const m=mk(r);if(md[m]&&top5.includes(r.channel))md[m][r.channel]+=r.total;});
+  if(C3)C3.destroy();
+  C3=new Chart(document.getElementById('c3'),{type:'line',data:{labels:months.map(m=>ML[m]||m),datasets:top5.map((ch,i)=>({label:ch,data:months.map(m=>Math.round(md[m]?.[ch]||0)),borderColor:NEON[i],backgroundColor:NEON[i]+'18',tension:0.4,pointRadius:4,borderWidth:2,fill:true,borderDash:i>2?[5,3]:[]}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#64748b',font:{size:11},boxWidth:10,padding:12}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': ฿'+ctx.raw.toLocaleString()}}},scales:{x:{ticks:{color:'#475569',font:{size:11}},grid:{color:'#1a2035'}},y:{ticks:{color:'#475569',font:{size:10},callback:v=>'฿'+(v>=1000?Math.round(v/1000)+'k':v)},grid:{color:'#1e2a4a'}}}}});
+
+  document.getElementById('tbody').innerHTML=sorted.map(([ch,v],i)=>{const pct=grand>0?(v.t/grand*100):0;return`<tr><td><span class="dot" style="background:${NEON[i%NEON.length]}"></span>${ch}</td><td>฿${Math.round(v.t).toLocaleString()}</td><td>${v.q}</td><td><div class="bar-mini"><div class="bar-fill" style="width:${pct}%;background:${NEON[i%NEON.length]}"></div></div>${pct.toFixed(1)}%</td></tr>`;}).join('');
+  document.getElementById('top5').innerHTML=sorted.slice(0,5).map(([ch,v],i)=>`<div class="top5-item"><span class="top5-rank" style="color:${NEON[i]}">${i+1}</span><span class="top5-name">${ch}</span><span class="top5-val" style="color:${NEON[i]}">฿${Math.round(v.t).toLocaleString()}</span></div>`).join('');
+}
+
+function startTimer() {
+  cd = 60;
+  document.getElementById('cd').textContent = `รีเฟรชใน ${cd}s`;
+  timer = setInterval(() => {
+    cd--;
+    if (cd <= 0) { fetchData(); }
+    else { document.getElementById('cd').textContent = `รีเฟรชใน ${cd}s`; }
+  }, 1000);
+}
+
+document.getElementById('df').addEventListener('change', render);
+document.getElementById('dt').addEventListener('change', render);
+document.getElementById('cf').addEventListener('change', render);
+function resetF() { document.getElementById('df').value='2026-01-01'; document.getElementById('dt').value='2026-12-31'; document.getElementById('cf').value=''; render(); }
+
+fetchData();
+</script>
+</body>
+</html>
