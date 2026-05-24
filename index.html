@@ -147,13 +147,13 @@ function parseCSV(text) {
   for(let i=0;i<rows.length;i++){
     const row=rows[i];
     if(!row||row.every(c=>!c)) continue;
-    if(row.some(c=>c==='วันที่'||c==='ช่องทาง')){
+    if(row.some(c=>c.trim().replace(/^'+|'+$/g,'').includes('วันที่')||c.trim().replace(/^'+|'+$/g,'').includes('ช่องทาง'))){
       hi=i;
       row.forEach((c,j)=>{
-        const ct=c.trim().replace(/^'+|'+$/g,'');
-        if(ct==='วันที่') cDate=j;
-        if(ct==='ช่องทาง') cCh=j;
-        if(ct==='ชื่อผลิตภัณฑ์') cProd=j;
+        const ct=c.trim().replace(/^'+|'+$/g,'').replace(/\s+/g,'');
+        if(ct.includes('วันที่')) cDate=j;
+        if(ct.includes('ช่องทาง')) cCh=j;
+        if(ct.includes('ชื่อผลิตภัณฑ์')) cProd=j;
         if(ct.includes('จำนวน')) cQty=j;
         if(ct==='รวม') cTotal=j;
       });
