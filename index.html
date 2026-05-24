@@ -103,6 +103,7 @@ async function fetchData() {
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     RAW = parseCSV(text);
+    console.log("DEBUG RAW length:", RAW.length, "first:", JSON.stringify(RAW[0]));
 
     // อัปเดต dropdowns
     updateDropdown('cf', [...new Set(RAW.map(r=>r.channel))].sort());
