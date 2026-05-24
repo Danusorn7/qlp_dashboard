@@ -150,11 +150,12 @@ function parseCSV(text) {
     if(row.some(c=>c==='วันที่'||c==='ช่องทาง')){
       hi=i;
       row.forEach((c,j)=>{
-        if(c==='วันที่') cDate=j;
-        if(c==='ช่องทาง') cCh=j;
-        if(c==='ชื่อผลิตภัณฑ์') cProd=j;
-        if(c.includes('จำนวน')) cQty=j;
-        if(c==='รวม') cTotal=j;
+        const ct=c.trim();
+        if(ct==='วันที่') cDate=j;
+        if(ct==='ช่องทาง') cCh=j;
+        if(ct==='ชื่อผลิตภัณฑ์') cProd=j;
+        if(ct.includes('จำนวน')) cQty=j;
+        if(ct==='รวม') cTotal=j;
       });
       continue;
     }
@@ -162,7 +163,7 @@ function parseCSV(text) {
     const dateStr=(cDate>=0?row[cDate]||'':'').replace(/"/g,'').trim();
     const channel=(cCh>=0?row[cCh]||'':'').trim()||'อื่นๆ';
     const product=(cProd>=0?row[cProd]||'':'').trim();
-    const qty=cQty>=0?parseInt((row[cQty]||'').replace(/,/g,''))||0:0;
+    const qty=cQty>=0?Math.round(parseFloat((row[cQty]||'').replace(/,/g,''))||0):0;
     const total=cTotal>=0?parseFloat((row[cTotal]||'').replace(/,/g,''))||0:0;
     if(!product||total<=0) continue;
 
